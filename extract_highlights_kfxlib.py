@@ -83,10 +83,20 @@ def load_navigation(kfx_path):
         if chunk.eid not in eid_to_pid:
             eid_to_pid[chunk.eid] = chunk.pid - chunk.eid_offset
 
+    def unwrap(val):
+        while hasattr(val, "value"):
+            val = val.value
+        if isinstance(val, dict):
+            return {k: unwrap(v) for k, v in val.items()}
+        elif isinstance(val, list):
+            return [unwrap(v) for v in val]
+        return val
+
     for container in nav.value[0].get("$392", []):
-        if isinstance(container, IonSymbol):
-            container = book.fragments.get(ftype="$391", fid=container)
-        data = container.value if isinstance(container, YJFragment) else container
+        data = unwrap(container)
+        if isinstance(data, IonSymbol):
+            container_frag = book.fragments.get(ftype="$391", fid=data)
+            data = unwrap(container_frag) if container_frag else {}
         typ = data.get("$235")
         if typ == "$237":  # page list
             page_list = data.get("$247", [])
