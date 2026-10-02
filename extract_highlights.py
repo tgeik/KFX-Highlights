@@ -18,6 +18,11 @@ def main():
         action="store_true",
         help="Emit a .highlights.md file (Markdown grouped by chapter) instead of .highlights.html",
     )
+    parser.add_argument(
+        "--full-book", "-f",
+        action="store_true",
+        help="Render the full book HTML with in-place highlights and sidebar margin notes",
+    )
     args = parser.parse_args()
 
     kfx_file = Path(args.book_kfx)
@@ -43,6 +48,8 @@ def main():
     cmd = [sys.executable, str(extract_script), str(json_file), str(kfx_file)]
     if args.markdown:
         cmd.append("--markdown")
+    if args.full_book:
+        cmd.append("--full-book")
     subprocess.run(cmd, check=True)
 
 
