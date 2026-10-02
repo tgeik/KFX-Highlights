@@ -354,7 +354,10 @@ def main():
         section, chapter = find_section(start)
         print(f"\nHighlight #{i}")
         print(f"Created: {ann['creationTime']}")
-        print(f"Text: {text}\n{'-'*60}")
+        try:
+            print(f"Text: {text}\n{'-'*60}")
+        except UnicodeEncodeError:
+            print(f"Text: {text.encode('ascii', errors='backslashreplace').decode('ascii')}\n{'-'*60}")
         highlights.append({
             "creationTime": ann["creationTime"],
             "text": text,
