@@ -8,3 +8,6 @@ __pycache__/
 *.highlights.html
 *.highlights.md
 *.yjr.json
+*.full_book.html
+*.kfx
+*.yjr
