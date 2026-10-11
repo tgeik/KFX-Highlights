@@ -1,0 +1,157 @@
+:root {
+    --bg-color: #fcfcf9;
+    --text-color: #2b2b2b;
+    --highlight-bg: #fff3a3;
+    --highlight-border: #f0cb00;
+    --highlight-active-bg: #ffe066;
+    --note-bg: #ffffff;
+    --note-border: #3b82f6;
+    --note-active-border: #1d4ed8;
+    --note-active-bg: #eff6ff;
+    --note-text: #1e3a8a;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Vazirmatn", "Noto Naskh Arabic", Georgia, serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.8;
+    font-size: 18px;
+    margin: 0;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+}
+.container {
+    max-width: 1100px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 40px;
+    position: relative;
+}
+.book-content {
+    grid-column: 1;
+}
+.header {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e5e7eb;
+}
+.book-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: #111827;
+}
+.book-authors {
+    font-size: 1.1rem;
+    color: #6b7280;
+    margin: 0;
+}
+.chapter-heading {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-top: 48px;
+    margin-bottom: 20px;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 8px;
+    text-align: start;
+}
+.chapter-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #d1d5db, transparent);
+    margin: 48px 0 32px 0;
+}
+p {
+    margin-bottom: 20px;
+    text-align: start;
+    unicode-bidi: plaintext;
+}
+p[dir="rtl"], .chapter-heading[dir="rtl"] {
+    text-align: right;
+}
+mark.kfx-highlight {
+    background-color: var(--highlight-bg);
+    border-bottom: 2px solid var(--highlight-border);
+    padding: 2px 0;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+mark.kfx-highlight:hover, mark.kfx-highlight.active-link {
+    background-color: var(--highlight-active-bg);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4);
+}
+.note-marker {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #2563eb;
+    cursor: pointer;
+    margin: 0 2px;
+    vertical-align: super;
+    user-select: none;
+    transition: color 0.15s;
+}
+.note-marker:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+aside.margin-note {
+    grid-column: 2;
+    float: right;
+    clear: right;
+    margin-right: -360px;
+    width: 320px;
+    margin-top: -4px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--note-bg);
+    border-left: 4px solid var(--note-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--note-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    text-align: start;
+    unicode-bidi: plaintext;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+aside.margin-note[dir="rtl"] {
+    border-left: none;
+    border-right: 4px solid var(--note-border);
+}
+aside.margin-note:hover, aside.margin-note.active-link {
+    background-color: var(--note-active-bg);
+    border-left-color: var(--note-active-border);
+    transform: translateX(4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+aside.margin-note[dir="rtl"]:hover, aside.margin-note[dir="rtl"].active-link {
+    border-right-color: var(--note-active-border);
+    transform: translateX(-4px);
+}
+.note-num {
+    font-weight: 700;
+    color: #2563eb;
+    margin-right: 4px;
+}
+.note-icon {
+    margin-right: 4px;
+}
+@media (max-width: 900px) {
+    .container {
+        display: block;
+    }
+    aside.margin-note {
+        float: none;
+        clear: both;
+        margin-right: 0;
+        width: auto;
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+}
