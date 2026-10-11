@@ -303,14 +303,53 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
         events.append((pos, "note", n.get("note", "")))
         
     # 3. TOC Chapter heading positions (used to mark chapter break positions without duplicating text)
-    toc_pids = set()
-    def collect_toc_pids(items):
+    # Assign unique anchor IDs to each TOC item and map PID -> anchor ID
+    pid_to_ch_id = {}
+    ch_counter = 0
+
+    def assign_toc_ids(items):
+        nonlocal ch_counter
         for item in items:
-            if item.get("pid") is not None:
-                toc_pids.add(item["pid"])
+            pid = item.get("pid")
+            if pid is not None and pid not in pid_to_ch_id:
+                ch_counter += 1
+                pid_to_ch_id[pid] = f"chapter-{ch_counter}"
+            item["ch_id"] = pid_to_ch_id.get(pid)
             if item.get("children"):
-                collect_toc_pids(item["children"])
-    collect_toc_pids(toc)
+                assign_toc_ids(item["children"])
+
+    assign_toc_ids(toc)
+    toc_pids = set(pid_to_ch_id.keys())
+
+    # Build TOC sidebar navigation HTML
+    def render_toc_list(items):
+        if not items:
+            return ""
+        out = ["<ul class='toc-list'>"]
+        for itm in items:
+            lbl = escape(itm.get("label", "").strip() or "Untitled")
+            cid = itm.get("ch_id")
+            out.append("<li class='toc-item'>")
+            if cid:
+                out.append(f"<a href='#{cid}' class='toc-link' data-target-id='{cid}' dir='auto'>{lbl}</a>")
+            else:
+                out.append(f"<span class='toc-link' dir='auto'>{lbl}</span>")
+            if itm.get("children"):
+                out.append(render_toc_list(itm["children"]))
+            out.append("</li>")
+        out.append("</ul>")
+        return "\n".join(out)
+
+    toc_nav_html = ""
+    if toc:
+        toc_nav_html = (
+            "<nav class='toc-sidebar' id='toc-sidebar' aria-label='Table of Contents'>\n"
+            "  <div class='toc-header'>\n"
+            "    <span class='toc-title'>Table of Contents</span>\n"
+            "  </div>\n"
+            f"  {render_toc_list(toc)}\n"
+            "</nav>"
+        )
 
     # Sort events by position. 
     # Order at same position: hl_end < hl_start < note
@@ -342,9 +381,11 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
             body_html.append("</p>\n")
             in_paragraph = False
             
-        # If this section start corresponds to a chapter/TOC position, insert a visual section divider
+        # If this section start corresponds to a chapter/TOC position, insert a visual section divider with anchor
         if sec_start in toc_pids or sec_start == 0:
-            body_html.append("<hr class='chapter-divider' />\n")
+            ch_id = pid_to_ch_id.get(sec_start, "")
+            id_attr = f" id='{ch_id}'" if ch_id else ""
+            body_html.append(f"<hr class='chapter-divider'{id_attr} />\n")
 
         # Start a new paragraph for this section
         body_html.append("<p dir='auto'>")
@@ -379,7 +420,9 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
                 if in_paragraph:
                     body_html.append("</p>\n")
                     in_paragraph = False
-                body_html.append("<hr class='chapter-divider' />\n")
+                ch_id = pid_to_ch_id.get(global_pos, "")
+                id_attr = f" id='{ch_id}'" if ch_id else ""
+                body_html.append(f"<hr class='chapter-divider'{id_attr} />\n")
                 body_html.append("<p dir='auto'>")
                 in_paragraph = True
             
@@ -467,6 +510,7 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
         authors=escape(", ".join(authors)),
         css=css,
         js=js,
+        toc=toc_nav_html,
         body="".join(body_html),
     )
 

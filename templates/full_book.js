@@ -58,4 +58,51 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // TOC Link Click Smooth Scroll
+    document.querySelectorAll(".toc-link").forEach(link => {
+        link.addEventListener("click", (e) => {
+            const targetId = link.getAttribute("data-target-id");
+            if (targetId) {
+                const target = document.getElementById(targetId);
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    history.pushState(null, null, `#${targetId}`);
+                }
+            }
+        });
+    });
+
+    // TOC Active Chapter Highlight on Scroll (ScrollSpy)
+    const tocLinks = Array.from(document.querySelectorAll(".toc-link[data-target-id]"));
+    if (tocLinks.length > 0) {
+        const chapterDividers = tocLinks
+            .map(link => document.getElementById(link.getAttribute("data-target-id")))
+            .filter(Boolean);
+
+        function updateActiveToc() {
+            const scrollPos = window.scrollY + 100;
+            let currentCh = null;
+
+            for (let i = 0; i < chapterDividers.length; i++) {
+                const div = chapterDividers[i];
+                if (div.offsetTop <= scrollPos) {
+                    currentCh = div.id;
+                } else {
+                    break;
+                }
+            }
+
+            tocLinks.forEach(link => {
+                if (currentCh && link.getAttribute("data-target-id") === currentCh) {
+                    link.classList.add("active");
+                } else {
+                    link.classList.remove("active");
+                }
+            });
+        }
+
+        window.addEventListener("scroll", updateActiveToc, { passive: true });
+        updateActiveToc();
+    }
 });
