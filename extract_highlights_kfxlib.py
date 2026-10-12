@@ -321,6 +321,10 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
     assign_toc_ids(toc)
     toc_pids = set(pid_to_ch_id.keys())
 
+    # Add TOC entries to events stream so they are accurately positioned
+    for pid, ch_id in pid_to_ch_id.items():
+        events.append((pid, "toc_chapter", ch_id))
+
     # Build TOC sidebar navigation HTML
     def render_toc_list(items):
         if not items:
@@ -352,16 +356,13 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
         )
 
     # Sort events by position. 
-    # Order at same position: hl_end < hl_start < note
-    type_order = {"hl_end": 0, "hl_start": 1, "note": 2}
-    events.sort(key=lambda x: (x[0], type_order.get(x[1], 3)))
+    # Order at same position: hl_end < toc_chapter < hl_start < note
+    type_order = {"hl_end": 0, "toc_chapter": 1, "hl_start": 2, "note": 3}
+    events.sort(key=lambda x: (x[0], type_order.get(x[1], 4)))
     
     # Construct full text stream with annotations inserted
     body_html = []
     
-    # Build content offset map across sections
-    # Join sections content while maintaining character position matching
-    current_pos = 0
     event_idx = 0
     n_events = len(events)
     
@@ -380,21 +381,16 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
         if in_paragraph:
             body_html.append("</p>\n")
             in_paragraph = False
-            
-        # If this section start corresponds to a chapter/TOC position, insert a visual section divider with anchor
-        if sec_start in toc_pids or sec_start == 0:
-            ch_id = pid_to_ch_id.get(sec_start, "")
-            id_attr = f" id='{ch_id}'" if ch_id else ""
-            body_html.append(f"<hr class='chapter-divider'{id_attr} />\n")
 
-        # Start a new paragraph for this section
-        body_html.append("<p dir='auto'>")
-        in_paragraph = True
-
-        # Advance events up to sec_start
+        # Advance any events before sec_start
         while event_idx < n_events and events[event_idx][0] < sec_start:
             ev_pos, ev_type, ev_val = events[event_idx]
-            if ev_type == "hl_start":
+            if ev_type == "toc_chapter":
+                if in_paragraph:
+                    body_html.append("</p>\n")
+                    in_paragraph = False
+                body_html.append(f"<hr class='chapter-divider' id='{ev_val}' />\n")
+            elif ev_type == "hl_start":
                 if not in_highlight:
                     body_html.append("<mark class='kfx-highlight'>")
                     in_highlight = True
@@ -408,28 +404,26 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
                 )
             event_idx += 1
 
+        # Start a new paragraph for this section
+        body_html.append("<p dir='auto'>")
+        in_paragraph = True
+
         sec_local_pos = 0
-        # Track active highlight IDs to associate with notes
         active_hl_id = None
         
         while sec_local_pos < len(content):
             global_pos = sec_start + sec_local_pos
             
-            # If internal character position hits a TOC chapter boundary, break paragraph and insert divider
-            if global_pos in toc_pids and sec_local_pos > 0:
-                if in_paragraph:
-                    body_html.append("</p>\n")
-                    in_paragraph = False
-                ch_id = pid_to_ch_id.get(global_pos, "")
-                id_attr = f" id='{ch_id}'" if ch_id else ""
-                body_html.append(f"<hr class='chapter-divider'{id_attr} />\n")
-                body_html.append("<p dir='auto'>")
-                in_paragraph = True
-            
             # Check if there are events at global_pos
             while event_idx < n_events and events[event_idx][0] == global_pos:
                 ev_pos, ev_type, ev_val = events[event_idx]
-                if ev_type == "hl_start":
+                if ev_type == "toc_chapter":
+                    if in_paragraph:
+                        body_html.append("</p>\n")
+                    body_html.append(f"<hr class='chapter-divider' id='{ev_val}' />\n")
+                    body_html.append("<p dir='auto'>")
+                    in_paragraph = True
+                elif ev_type == "hl_start":
                     if not in_highlight:
                         hl_counter += 1
                         active_hl_id = f"hl-{hl_counter}"
@@ -443,11 +437,9 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
                     note_counter += 1
                     note_id = f"note-{note_counter}"
                     target_hl = active_hl_id or f"hl-{hl_counter}"
-                    # Insert superscript marker badge right at note position
                     body_html.append(
                         f"<sup class='note-marker' data-target-note='{note_id}' data-target-hl='{target_hl}'>[📝{note_counter}]</sup>"
                     )
-                    # Insert sidebar note with matching data-target-hl attribute
                     body_html.append(
                         f"<aside class='margin-note' id='{note_id}' data-hl-id='{target_hl}' dir='auto'>"
                         f"<span class='note-num'>[{note_counter}]</span> <span class='note-icon'>📝</span> {escape(ev_val)}"
@@ -462,19 +454,22 @@ def generate_full_book_html(title, authors, sections, annotations, notes, toc, o
                 
             chunk = content[sec_local_pos:next_event_pos]
             if chunk:
-                # Format paragraph breaks cleanly
                 paragraphs = chunk.split("\n\n")
                 for p_i, p in enumerate(paragraphs):
                     if p_i > 0:
                         body_html.append("</p>\n<p dir='auto'>")
-                    # Replace single newlines with spaces within paragraph
                     body_html.append(escape(p.replace("\n", " ")))
             sec_local_pos = next_event_pos
 
     # Process any remaining events at the very end
     while event_idx < n_events:
         ev_pos, ev_type, ev_val = events[event_idx]
-        if ev_type == "hl_end" and in_highlight:
+        if ev_type == "toc_chapter":
+            if in_paragraph:
+                body_html.append("</p>\n")
+                in_paragraph = False
+            body_html.append(f"<hr class='chapter-divider' id='{ev_val}' />\n")
+        elif ev_type == "hl_end" and in_highlight:
             body_html.append("</mark>")
             in_highlight = False
         elif ev_type == "note" and ev_val:
